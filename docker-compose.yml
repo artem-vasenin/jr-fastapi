@@ -1,0 +1,22 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4-management  # ← сразу с плагином management UI
+    container_name: rabbitmq-fun
+    ports:
+      - "5672:5672"       # AMQP протокол (для клиентов, т.е программ)
+      - "15672:15672"     # веб-интерфейс управления (для людей)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  rabbitmq-data:
