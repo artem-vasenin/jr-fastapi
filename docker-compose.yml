@@ -1,17 +1,5 @@
 services:
-  rabbitmq:
-    image: rabbitmq:4-management
-    container_name: rabbitmq
+  redis:
+    image: redis:7-alpine
     ports:
-      - "5672:5672"     # AMQP для Celery
-      - "15672:15672"   # веб-интерфейс (guest/guest)
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  rabbitmq-data:
+      - "6379:6379"
