@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 
 # Обычно выносят в отдельный модуль
 app = Celery(
@@ -16,3 +17,17 @@ app.conf.update(
     result_expires=3600,              # результаты храним 1 час
     worker_concurrency=2,
 )
+
+# periodic.py
+app.conf.beat_schedule = {
+    'add-every-30-seconds': {
+        'task': 'tasks.add',
+        'schedule': 30.0,               # каждые 30 секунд
+        'args': (6, 8)
+    },
+    'say-hello-every-2-minutes': {
+        'task': 'tasks.hello',
+        'schedule': crontab(minute='*/2'),
+        'args': (),
+    },
+}

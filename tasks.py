@@ -18,6 +18,11 @@ def flaky_task(self):
         raise self.retry(exc=ValueError("Ой, упал!"))
     return "Всё ок!"
 
+@app.task
+def hello():
+    print("Привет! Я периодическая задача :)")
+    return "Hello from beat"
+
 # Параметры декоратора @app.task():
 # bind=True → даёт доступ к self.retry() и информации о попытках
 # max_retries=3 → сколько раз можно перепробовать (всего запусков = 1 + 3)
