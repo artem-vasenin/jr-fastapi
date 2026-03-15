@@ -3,3 +3,5 @@ __pycache__/
 .venv
 .idea
 local_settings.py
+tmp.txt
+tg_session.session
