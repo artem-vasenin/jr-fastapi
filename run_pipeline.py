@@ -1,7 +1,8 @@
-from celery import group
+from celery import group, chain
 
 from celery_app import celery_app
 from app.tasks.parse_sites import parse_site_task
+from app.tasks.filter import filter_posts_task
 from app.redis_sync import get_sync_redis
 
 
@@ -15,6 +16,7 @@ def get_all_source_names():
 
 
 def main():
+    # --- Парсинг -----------------------------------------------------
     source_names = get_all_source_names()
 
     if not source_names:
@@ -32,7 +34,16 @@ def main():
 
     total = result.get(timeout=300)  # ждём завершения всех
     print(f"Результаты: {total}")
-    print(f"Всего сохранено: {sum(total)}")
+    print(f'Всего сохранено "сырых" постов: {sum(total)}')
+
+    # --- Фильтрация --------------------------------------------------
+
+    filter_result = filter_posts_task.apply_async()
+    print("Фильтрация запущена. Ждём результата...")
+
+    filtered_count = filter_result.get(timeout=180)
+    print(f"Отфильтровано: {filtered_count}")
+
 
 if __name__ == "__main__":
     main()

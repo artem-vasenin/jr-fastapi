@@ -1,8 +1,11 @@
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.dependencies import get_redis
-from app.schemas.keywords import KeywordCreate, KeywordUpdate, KeywordOut
 from app.utils.logging import get_logger
+from app.redis_sync import get_sync_redis
+from app.services.keyword_service import get_all_keywords
+from app.schemas.keywords import KeywordCreate, KeywordUpdate, KeywordOut
 
 logger = get_logger(__name__)
 
@@ -17,16 +20,13 @@ router = APIRouter(
 async def list_keywords(
     skip: int = Query(0, ge=0, description="Пропустить N элементов"),
     limit: int = Query(50, ge=1, le=500, description="Максимум элементов"),
-    redis = Depends(get_redis),
+    redis = Depends(get_sync_redis),
 ):
     """Получить список ключевых слов"""
     logger.debug(f"Запрос списка ключевых слов: {skip}, {limit}")
 
     try:
-        keywords = await redis.smembers("keywords")
-        if not keywords:
-            return []
-
+        keywords = await run_in_threadpool(get_all_keywords, redis)
         return [KeywordOut(keyword=kw) for kw in sorted(keywords)]
 
     except Exception as e:
