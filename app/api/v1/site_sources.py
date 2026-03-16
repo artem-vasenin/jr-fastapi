@@ -1,7 +1,11 @@
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
 from app.dependencies import get_redis
-from app.schemas.site_sources import SiteSourceCreate, SiteSourceUpdate, SiteSourceOut
 from app.utils.logging import get_logger
+from app.redis_sync import get_sync_redis
+from app.services.source_service import get_all_site_sources
+from app.schemas.site_sources import SiteSourceCreate, SiteSourceUpdate, SiteSourceOut
 
 logger = get_logger(__name__)
 
@@ -15,38 +19,19 @@ router = APIRouter(
 async def list_sources(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
-    redis = Depends(get_redis),
+    redis = Depends(get_sync_redis),
 ):
     """Получить список всех источников сайтов"""
     logger.debug(f"Запрос списка источников: skip={skip}, limit={limit}")
 
-    sources = []
-
     try:
         # Получаем все ключи site_sources
-        keys = await redis.keys("site_sources:*")
-        if not keys:
-            return []  # если ключей нет, возвращаем пустой список
+        # Обернем в эту хитрость чтобы сделать код неблокирующим
+        sources = await run_in_threadpool(
+            get_all_site_sources,redis,
+        )
 
-        for key in sorted(keys)[skip : skip + limit]:
-            # Декодируем ключ, если он bytes
-            key_str = key.decode() if isinstance(key, bytes) else key
-
-            # Берем все поля HASH как словарь str → str
-            data = await redis.hgetall(key_str)
-            if not data:
-                logger.warning(f"HASH ключ пуст или неверный формат: {key_str}")
-                continue
-
-            name = data.get("name")
-            url = data.get("url")
-            if name and url:
-                sources.append(SiteSourceOut(name=name, url=url))
-            else:
-                logger.warning(f"HASH ключ не содержит необходимых полей: {key_str}")
-
-        return sources
-
+        return sources[skip : skip + limit]
     except Exception:
         logger.exception("Ошибка при получении списка источников")
         raise HTTPException(

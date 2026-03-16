@@ -19,6 +19,7 @@ class Settings(BaseModel):
     ai_api_key: str = AI_API_KEY
     redis_url: str = REDIS_URL
     parsing_interval_minutes: int = PARSING_INTERVAL_MINUTES
+    max_news_per_source_per_run: int = MAX_NEWS_PER_SOURCE_PER_RUN
     words: list[str] = KEYWORDS
     tg_sources: list[str] = TG_SOURCES
     site_sources: list[dict] = SITE_SOURCES

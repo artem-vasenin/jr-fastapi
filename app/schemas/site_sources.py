@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl
+from datetime import datetime
 
 
 class SiteSourceBase(BaseModel):
@@ -19,4 +20,4 @@ class SiteSourceUpdate(BaseModel):
 
 class SiteSourceOut(SiteSourceBase):
     """Схема для вывода источника"""
-    pass
+    last_post_at: datetime | None = None
