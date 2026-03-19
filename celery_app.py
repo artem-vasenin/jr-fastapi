@@ -8,6 +8,7 @@ celery_app = Celery(
     include=[
         'app.tasks.parse_sites',
         'app.tasks.filter',
+        'app.tasks.generate',
     ],
 
 )

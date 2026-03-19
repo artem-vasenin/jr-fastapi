@@ -7,10 +7,7 @@ from app.services.keyword_service import matches_keywords
 
 
 def process_posts(redis, news: dict) -> bool:
-    """
-    Возвращает True, если новость прошла фильтрацию и сохранена.
-    """
-
+    """ Возвращает True, если новость прошла фильтрацию и сохранена."""
     # --- 1 фильтр по ключевым словам -------------------------------------
     if not matches_keywords(redis, news):
         return False

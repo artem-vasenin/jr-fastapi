@@ -2,6 +2,7 @@ from celery import group, chain
 
 from celery_app import celery_app
 from app.tasks.parse_sites import parse_site_task
+from app.tasks.generate import generate_post_task
 from app.tasks.filter import filter_posts_task
 from app.redis_sync import get_sync_redis
 
@@ -43,6 +44,31 @@ def main():
 
     filtered_count = filter_result.get(timeout=180)
     print(f"Отфильтровано: {filtered_count}")
+
+    # --- Запуск генерации постов -------------------------------------
+
+    redis = get_sync_redis()
+    filtered_keys = redis.keys("news:filtered:*")
+
+    if not filtered_keys:
+        print("Нет отфильтрованных новостей для генерации")
+    else:
+        print(f"Найдено отфильтрованных новостей: {len(filtered_keys)}")
+        print("Генерация запущена. Ждём результата...")
+
+        generate_group = group(
+            generate_post_task.s(
+                key.decode("utf-8") if isinstance(key, bytes) else key
+            )
+            for key in filtered_keys
+        )
+
+        try:
+            gen_counts = generate_group.apply_async().get(timeout=600)
+            total_generated = sum(x or 0 for x in gen_counts)
+            print(f"Генерация завершена. Успешно сгенерировано: {total_generated}")
+        except Exception as e:
+            print(f"Ошибка при генерации: {type(e).__name__}: {e}")
 
 
 if __name__ == "__main__":
