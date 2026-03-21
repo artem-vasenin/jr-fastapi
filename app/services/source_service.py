@@ -40,7 +40,6 @@ def get_all_tg_sources(redis) -> list[TgSourceOut]:
         return []
 
     for key in sorted(keys):
-        # Берем все поля HASH как словарь str → str
         data = redis.hgetall(key)
         if not data:
             logger.warning(f"HASH ключ пуст или неверный формат: {key}")

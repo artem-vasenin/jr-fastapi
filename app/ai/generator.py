@@ -10,9 +10,7 @@ FREE_AI_URL = "https://apifreellm.com/api/v1/chat"
 
 
 def ai_generate_post(title: str, summary: str, max_retries: int = 3) -> GenerateResponse:
-    """
-    Возвращает (новый_заголовок, сгенерированный_пост)
-    """
+    """ Возвращает (новый_заголовок, сгенерированный_пост)"""
     if not title or not summary:
         raise ValueError("Title и summary обязательны")
 
@@ -25,6 +23,7 @@ def ai_generate_post(title: str, summary: str, max_retries: int = 3) -> Generate
         "• Добавь 2–4 релевантных emoji\n"
         "• Стиль живой, как у хорошего Telegram-канала\n"
         "• Не используй слова «дорогие друзья» и «новость дня»\n"
+        "• Если заголовок новости идентичен краткому содержанию или длиннее 20 слов то создай новый заголовок на основе содержания\n"
         'В ответе отделе новый заголовок от текста тройным символом |||'
     )
 

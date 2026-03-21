@@ -7,6 +7,7 @@ celery_app = Celery(
     backend=settings.redis_url,
     include=[
         'app.tasks.parse_sites',
+        'app.tasks.parse_channels',
         'app.tasks.filter',
         'app.tasks.generate',
     ],
