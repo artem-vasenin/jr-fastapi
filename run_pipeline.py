@@ -5,6 +5,7 @@ from app.tasks.parse_sites import parse_site_task
 from app.tasks.parse_channels import parse_channels_task
 from app.tasks.generate import generate_post_task
 from app.tasks.filter import filter_posts_task
+from app.tasks.publication import public_post_task
 from app.redis_sync import get_sync_redis
 
 
@@ -101,7 +102,27 @@ def main():
             print(f"Ошибка при генерации: {type(e).__name__}: {e}")
 
     # --- Публикация сгенерированных постов в тг канале пользователя ----
-    # ToDo: Сделать пайплайн публикации
+    generated_keys = redis.keys("news:generated:*")
+
+    if not generated_keys:
+        print("Нет сгенерированных новостей для публикации")
+    else:
+        print(f"Найдено сгенерированных новостей: {len(generated_keys)}")
+        print("Публикация запущена. Ждём результата...")
+
+        publish_group = group(
+            public_post_task.s(
+                key.decode("utf-8") if isinstance(key, bytes) else key
+            )
+            for key in generated_keys
+        )
+
+        try:
+            pub_counts = publish_group.apply_async().get(timeout=600)
+            total_published = sum(x or 0 for x in pub_counts)
+            print(f"Публикация завершена. Успешно опубликовано: {total_published}")
+        except Exception as e:
+            print(f"Ошибка при публикации: {type(e).__name__}: {e}")
 
 
 if __name__ == "__main__":

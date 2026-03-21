@@ -10,6 +10,7 @@ celery_app = Celery(
         'app.tasks.parse_channels',
         'app.tasks.filter',
         'app.tasks.generate',
+        'app.tasks.publication',
     ],
 
 )
