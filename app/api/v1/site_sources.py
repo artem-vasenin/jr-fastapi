@@ -33,7 +33,7 @@ async def list_sources(
 
         return sources[skip : skip + limit]
     except Exception:
-        logger.exception("Ошибка при получении списка источников")
+        logger.exception("Ошибка при получении списка источников rss лент")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error while fetching site sources",

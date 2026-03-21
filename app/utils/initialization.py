@@ -39,4 +39,16 @@ async def initialize_default_settings(redis: aioredis.Redis) -> None:
             logger.debug(f"Источник site_sources: {site['name']} уже существует!")
 
     # --- Инициализация телеграм-каналов ----------------------------------------
-    # Добавим позже
+    default_tg = settings.tg_sources
+
+    for tg in default_tg:
+        key = f"tg_sources:{tg['name']}"
+        exists = await redis.exists(key)
+        if not exists:
+            logger.info("Добавляем дефолтный tg источник: %s", tg['name'])
+            await redis.hset(key, mapping={
+                "name": tg["name"],
+                "id": tg["id"]
+            })
+        else:
+            logger.debug(f"Источник tg_sources: {tg['name']} уже существует!")

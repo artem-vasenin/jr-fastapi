@@ -16,28 +16,27 @@ def html_to_text(html: str) -> str:
     return soup.get_text(strip=True)
 
 
-def parse_rss(url: str) -> list[dict]:
+def parse_rss(uri: str) -> list[dict]:
      with httpx.Client(timeout=10, follow_redirects=True) as client:
-        r = client.get(url)
+        r = client.get(uri)
         r.raise_for_status()
         feed = feedparser.parse(r.text)
+        lst = []
 
-
-        posts = []
         for entry in feed.entries:
             published = None
             # преобразуем дату публикации в объект datetime
             if hasattr(entry, "published_parsed") and entry.published_parsed:
                 published = datetime(*entry.published_parsed[:6])
 
-            posts.append({
+            lst.append({
                 "title": entry.title,
                 "link": entry.link,
                 "summary": html_to_text(entry.summary),
                 "published_at": published
             })
 
-        return posts
+        return lst
 
 
 # выполняем smoke-тест для функции rss-парсинга

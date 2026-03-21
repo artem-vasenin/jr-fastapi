@@ -9,7 +9,7 @@ from app.utils.logging import setup_logging, get_logger
 from app.api.v1 import (
     keywords,
     site_sources,
-    # tg_sources,
+    tg_sources,
     posts,
     filtered_posts,
     history,
@@ -20,9 +20,7 @@ from app.utils.initialization import initialize_default_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Lifespan-события: запуск при старте / очистка при остановке
-    """
+    """Lifespan-события: запуск при старте / очистка при остановке"""
     # --- Настройка логирования (один раз при старте) -------------------
     setup_logging()
     logger = get_logger(__name__)
@@ -65,16 +63,16 @@ app = FastAPI(
 # --- Подключаем роутеры (по мере реализации) --------------------------
 app.include_router(keywords.router, prefix="/api/v1", tags=["keywords"])
 app.include_router(site_sources.router, prefix="/api/v1", tags=["site_sources"])
-# app.include_router(tg_sources.router, prefix="/api/v1", tags=["tg_sources"])
+app.include_router(tg_sources.router, prefix="/api/v1", tags=["tg_sources"])
 app.include_router(posts.router, prefix="/api/v1", tags=["posts"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])
-
 app.include_router(filtered_posts.router, prefix="/api/v1", tags=["filtered_posts"])
 app.include_router(generate.router, prefix="/api/v1", tags=["generate"])
 
 
 @app.get("/health", response_model=dict, tags=["system"])
 async def health_check(request: Request):
+    """Проверка жив ли редис"""
     redis = getattr(request.app.state, "redis", None)
 
     redis_ok = False
