@@ -41,7 +41,7 @@ async def list_sources(
 
 @router.get("/{name}", response_model=TgSourceOut)
 async def get_source(name: str, redis = Depends(get_redis)):
-    """Получить один источник tg по имени"""
+    """Получить один tg канал по имени"""
     key = f"tg_sources:{name}"
     exists = await redis.exists(key)
     if not exists:
@@ -61,14 +61,14 @@ async def get_source(name: str, redis = Depends(get_redis)):
 
 @router.post("/", response_model=TgSourceOut, status_code=201)
 async def create_source(data: TgSourceCreate, redis = Depends(get_redis)):
+    """Добавить тг канал в базу"""
     key = f"tg_sources:{data.name}"
     if await redis.exists(key):
         raise HTTPException(409, f"Source '{data.name}' already exists")
 
     try:
-        # Конвертируем HttpUrl в str
-        await redis.hset(key, mapping={"name": data.name, "id": str(data.id)})
-        return TgSourceOut(name=data.name, id=str(data.id))
+        await redis.hset(key, mapping={"name": data.name, "id": data.id})
+        return TgSourceOut(name=data.name, id=data.id)
 
     except Exception:
         logger.exception(f"Ошибка при создании tg источника {data.name}")
@@ -77,6 +77,7 @@ async def create_source(data: TgSourceCreate, redis = Depends(get_redis)):
 
 @router.patch("/{name}", response_model=TgSourceOut)
 async def update_source(name: str, data: TgSourceUpdate, redis = Depends(get_redis)):
+    """Изменить тг канал"""
     key = f"tg_sources:{name}"
     if not await redis.exists(key):
         raise HTTPException(404, "Source not found")
@@ -88,7 +89,7 @@ async def update_source(name: str, data: TgSourceUpdate, redis = Depends(get_red
         raise HTTPException(500, "Invalid source data in Redis")
 
     new_name = data.name.strip() if data.name else current_name
-    new_id = str(data.id) if data.id else current_id
+    new_id = data.id if data.id else current_id
 
     if new_name != name and await redis.exists(f"site_sources:{new_name}"):
         raise HTTPException(409, f"Source '{new_name}' already exists")
@@ -108,6 +109,7 @@ async def update_source(name: str, data: TgSourceUpdate, redis = Depends(get_red
 
 @router.delete("/{name}", status_code=204)
 async def delete_source(name: str, redis = Depends(get_redis)):
+    """Удалить тг канал по имени"""
     key = f"tg_sources:{name}"
     removed = await redis.delete(key)
     if removed == 0:

@@ -52,6 +52,7 @@ async def get_keyword(keyword: str, redis = Depends(get_redis)):
 
 @router.post("/", response_model=KeywordOut, status_code=201)
 async def create_keyword(data: KeywordCreate, redis=Depends(get_redis)):
+    """Создать новое ключевое слово"""
     keyword = data.keyword.strip()
     if not keyword:
         raise HTTPException(422, "Keyword cannot be empty")
@@ -76,7 +77,6 @@ async def update_keyword(
     redis = Depends(get_redis),
 ):
     """Обновить существующее ключевое слово word на new_word (заменить слово)"""
-
     if not data.keyword:
         raise HTTPException(422, "Nothing to update")
 
@@ -110,7 +110,6 @@ async def update_keyword(
 @router.delete("/{keyword}", status_code=204)
 async def delete_keyword(keyword: str, redis = Depends(get_redis)):
     """Удалить ключевое слово"""
-
     logger.warning(f"Удаление ключевого слова: {keyword}")
 
     removed = await redis.srem("keywords", keyword)

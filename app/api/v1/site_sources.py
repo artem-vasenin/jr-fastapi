@@ -62,6 +62,7 @@ async def get_source(name: str, redis = Depends(get_redis)):
 
 @router.post("/", response_model=SiteSourceOut, status_code=201)
 async def create_source(data: SiteSourceCreate, redis = Depends(get_redis)):
+    """Добавить сайт источник"""
     key = f"site_sources:{data.name}"
     if await redis.exists(key):
         raise HTTPException(409, f"Source '{data.name}' already exists")
@@ -78,6 +79,7 @@ async def create_source(data: SiteSourceCreate, redis = Depends(get_redis)):
 
 @router.patch("/{name}", response_model=SiteSourceOut)
 async def update_source(name: str, data: SiteSourceUpdate, redis = Depends(get_redis)):
+    """Изменить сайт источник по имени"""
     key = f"site_sources:{name}"
     if not await redis.exists(key):
         raise HTTPException(404, "Source not found")
@@ -109,6 +111,7 @@ async def update_source(name: str, data: SiteSourceUpdate, redis = Depends(get_r
 
 @router.delete("/{name}", status_code=204)
 async def delete_source(name: str, redis = Depends(get_redis)):
+    """Удалить сайт источник по имени"""
     key = f"site_sources:{name}"
     removed = await redis.delete(key)
     if removed == 0:
