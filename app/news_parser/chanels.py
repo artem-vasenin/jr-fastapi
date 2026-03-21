@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 session_path = Path(__file__).resolve().parent.parent.parent / "tg_session"
-print(session_path)
 
 def parse_tg(channel: str):
     with TelegramClient(str(session_path), API_ID, API_HASH) as client:
