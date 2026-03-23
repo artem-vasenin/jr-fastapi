@@ -3,6 +3,7 @@ from datetime import datetime
 
 
 class TgSourceBase(BaseModel):
+    """Базовая схема источника tg"""
     name: str = Field(..., min_length=1, max_length=100, strip_whitespace=True)
     id: str = Field(..., min_length=1, max_length=100)
 

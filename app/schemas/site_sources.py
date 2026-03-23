@@ -3,6 +3,7 @@ from datetime import datetime
 
 
 class SiteSourceBase(BaseModel):
+    """Базовая схема источника"""
     name: str = Field(..., min_length=1, max_length=100, strip_whitespace=True)
     url: HttpUrl = Field(..., max_length=500)
 

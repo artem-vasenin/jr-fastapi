@@ -11,6 +11,7 @@ logger = get_logger(__name__)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def parse_site_task(self, source_name: str):
+    """Задача парсинга rss ленты"""
     redis = get_sync_redis()
     try:
         source_key = f"site_sources:{source_name}"

@@ -7,10 +7,7 @@ def get_all_keywords(redis) -> list[str]:
     )
 
 def matches_keywords(redis, news: dict) -> bool:
-    """
-    Проверяет, содержит ли новость хотя бы одно ключевое слово.
-    Ищем в title и summary.
-    """
+    """Проверяет, содержит ли новость хотя бы одно ключевое слово. Ищем в title и summary."""
     keywords = get_all_keywords(redis)
 
     if not keywords:

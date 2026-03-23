@@ -5,6 +5,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 def html_to_text(html: str) -> str:
+    """Убираем лишнее из текста новости"""
     soup = BeautifulSoup(html, "html.parser")
     # Удаляем все картинки
     for img in soup.find_all("img"):
@@ -17,11 +18,13 @@ def html_to_text(html: str) -> str:
 
 
 def parse_rss(uri: str) -> list[dict]:
-     with httpx.Client(timeout=10, follow_redirects=True) as client:
+    """Парсим РСС ленту"""
+    lst = []
+
+    with httpx.Client(timeout=10, follow_redirects=True) as client:
         r = client.get(uri)
         r.raise_for_status()
         feed = feedparser.parse(r.text)
-        lst = []
 
         for entry in feed.entries:
             published = None
@@ -36,7 +39,7 @@ def parse_rss(uri: str) -> list[dict]:
                 "published_at": published
             })
 
-        return lst
+    return lst
 
 
 # выполняем smoke-тест для функции rss-парсинга

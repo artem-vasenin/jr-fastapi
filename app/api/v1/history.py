@@ -17,9 +17,7 @@ async def get_dup_history(
     limit: int = Query(50, ge=1, le=500),
     redis = Depends(get_redis),
 ):
-    """
-    История дедупликации (хэши заголовков + summary)
-    """
+    """История дедупликации (хэши заголовков + summary)"""
     keys = await redis.keys("news:dup:*")
     if not keys:
         return []

@@ -6,6 +6,7 @@ FILTERED_TTL = 60 * 60  # 1 час
 
 
 def normalize_text(text: str) -> str:
+    """Вычищается текст"""
     text = text.lower()
     text = re.sub(r"\s+", " ", text)
     text = re.sub(r"[^\w\s]", "", text)
@@ -13,12 +14,14 @@ def normalize_text(text: str) -> str:
 
 
 def generate_content_hash(title: str, summary: str | None = None) -> str:
+    """Создается хэш из контента"""
     base = f"{title} {summary or ''}"
     normalized = normalize_text(base)
     return hashlib.md5(normalized.encode("utf-8")).hexdigest()
 
 
 def is_duplicate(redis, content_hash: str) -> bool:
+    """Проверка на дубль"""
     return redis.exists(f"published_hash:{content_hash}") == 1
 
 
@@ -31,6 +34,7 @@ def mark_as_published(redis, content_hash: str):
 
 
 def save_filtered(redis, news: dict, content_hash: str):
+    """Сохраняем в отфильтрованные"""
     redis.hset(
         f"filtered_news:{content_hash}",
         mapping={

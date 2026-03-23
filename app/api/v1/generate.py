@@ -40,6 +40,7 @@ async def list_generated_posts(
         limit: int = Query(20, ge=1, le=200),
         redis=Depends(get_redis),
 ):
+    """Получить список сгенерированных новостей"""
     try:
         raw_keys = await redis.keys(f"{GENERATED_PREFIX}:*")
         keys = [k.decode("utf-8") if isinstance(k, bytes) else k for k in raw_keys]

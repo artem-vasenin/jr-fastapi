@@ -18,7 +18,6 @@ def filter_posts_task(self, previous_results: list | None = None):
     Берёт новости из news:raw:*, фильтрует по ключевым словам и дедупликации,
     сохраняет отфильтрованные в news:filtered:*
     """
-
     redis = get_sync_redis()
 
     try:
