@@ -1,3 +1,5 @@
+from typing import Any
+
 from celery import group, chain
 
 from celery_app import celery_app
@@ -9,67 +11,39 @@ from app.tasks.publication import public_post_task
 from app.redis_sync import get_sync_redis
 
 
-def get_rss_source_names():
+def get_source_names(target: str):
     redis = get_sync_redis()
-    keys = redis.keys("site_sources:*")
-    return [
-        key.split(":")[1]
-        for key in keys
-    ]
+    keys = redis.keys(target)
 
-def get_tg_source_names():
-    redis = get_sync_redis()
-    keys = redis.keys("tg_sources:*")
-    return [
-        key.split(":")[1]
-        for key in keys
-    ]
+    return [key.split(":")[1] for key in keys]
 
 
-def main():
-    # --- Парсинг -----------------------------------------------------
-    # --- RSS ---------------------------------------------------------
-    rss_source_names = get_rss_source_names()
+def parse_sources(target: str, task: Any, p_type: str):
+    source_names = get_source_names(target)
 
-    if not rss_source_names:
+    if not source_names:
         print("Нет источников")
         return
 
-    parse_rss_group = group(
-        parse_site_task.s(source_name=name)
-        for name in rss_source_names
-    )
-
-    rss_result = parse_rss_group.apply_async()
+    parse_group = group(task.s(source_name=name) for name in source_names)
+    result = parse_group.apply_async()
 
     print("Задачи запущены. Ждём результата...")
 
-    rss_total = rss_result.get(timeout=300)  # ждём завершения всех
-    print("Парсинг RSS запущен. Ждём результата...")
-    print(f"Результаты: {rss_total}")
-    print(f'Всего сохранено "сырых" постов: {sum(rss_total)}')
+    total = result.get(timeout=300)  # ждём завершения всех
+    print(f"Парсинг {p_type} запущен. Ждём результата...")
+    print(f"Результаты: {total}")
+    print(f'Всего сохранено "сырых" постов: {sum(total)}')
 
-    # --- TG ---------------------------------------------------------
-    tg_source_names = get_tg_source_names()
 
-    if not tg_source_names:
-        print("Нет источников")
-        return
+def main():
+    # --- Парсинг RSS ---------------------------------------------------------
+    parse_sources("site_sources:*", parse_site_task, "RSS")
 
-    parse_tg_group = group(
-        parse_channels_task.s(source_name=name)
-        for name in tg_source_names
-    )
-
-    tg_result = parse_tg_group.apply_async()
-
-    tg_total = tg_result.get(timeout=300)  # ждём завершения всех
-    print("Парсинг TG запущен. Ждём результата...")
-    print(f"Результаты: {tg_total}")
-    print(f'Всего сохранено "сырых" постов: {sum(tg_total)}')
+    # --- Парсинг TG ---------------------------------------------------------
+    parse_sources("tg_sources:*", parse_channels_task, "TG")
 
     # --- Фильтрация --------------------------------------------------
-
     filter_result = filter_posts_task.apply_async()
     print("Фильтрация запущена. Ждём результата...")
 
@@ -77,7 +51,6 @@ def main():
     print(f"Отфильтровано: {filtered_count}")
 
     # --- Запуск генерации постов -------------------------------------
-
     redis = get_sync_redis()
     filtered_keys = redis.keys("news:filtered:*")
 
