@@ -1,9 +1,10 @@
 from celery import Celery
 from app.config import settings
+from celery.schedules import crontab
 
 celery_app = Celery(
     "news_parser",
-    broker=settings.redis_url,     # redis://localhost:6379/0
+    broker=settings.redis_url,
     backend=settings.redis_url,
     include=[
         'app.tasks.parse_sites',
@@ -11,6 +12,7 @@ celery_app = Celery(
         'app.tasks.filter',
         'app.tasks.generate',
         'app.tasks.publication',
+        'app.tasks.run_pipeline',
     ],
 
 )
@@ -24,3 +26,10 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_acks_late=True,
 )
+celery_app.conf.beat_schedule = {
+    "run-pipeline-every-minute": {
+        "task": "app.tasks.run_pipeline.run_pipeline_task",
+        "schedule": crontab(minute="*/5"),
+        # "schedule": crontab(minute="*/30"),
+    },
+}
