@@ -1,6 +1,4 @@
-from typing import Any
-
-from celery import group, chain
+from celery import group, chain, chord
 
 from celery_app import celery_app
 from app.tasks.parse_sites import parse_site_task
@@ -15,88 +13,93 @@ def get_source_names(target: str):
     redis = get_sync_redis()
     keys = redis.keys(target)
 
-    return [key.split(":")[1] for key in keys]
+    return [
+        key.split(':')[1] if isinstance(key, str)
+        else key.decode().split(':')[1]
+        for key in keys
+    ]
 
 
-def parse_sources(target: str, task: Any, p_type: str):
-    source_names = get_source_names(target)
+@celery_app.task
+def generate_wrapper(_):
+    redis = get_sync_redis()
+    keys = redis.keys('news:filtered:*')
 
-    if not source_names:
-        print("Нет источников")
-        return
+    if not keys:
+        print('Нет отфильтрованных новостей для генерации')
+        return 0
 
-    parse_group = group(task.s(source_name=name) for name in source_names)
-    result = parse_group.apply_async()
+    print(f'Генерация: найдено {len(keys)} новостей')
 
-    print("Задачи запущены. Ждём результата...")
+    job = group(
+        generate_post_task.s(
+            key.decode('utf-8') if isinstance(key, bytes) else key
+        )
+        for key in keys
+    )
 
-    total = result.get(timeout=300)  # ждём завершения всех
-    print(f"Парсинг {p_type} запущен. Ждём результата...")
-    print(f"Результаты: {total}")
-    print(f'Всего сохранено "сырых" постов: {sum(total)}')
+    job.apply_async()
+
+    return len(keys)
+
+
+@celery_app.task
+def publish_wrapper(_):
+    redis = get_sync_redis()
+    keys = redis.keys('news:generated:*')
+
+    if not keys:
+        print('Нет сгенерированных новостей для публикации')
+        return 0
+
+    print(f'Публикация: найдено {len(keys)} новостей')
+
+    job = group(
+        public_post_task.s(
+            key.decode('utf-8') if isinstance(key, bytes) else key
+        )
+        for key in keys
+    )
+
+    job.apply_async()
+
+    return len(keys)
 
 
 def main():
-    # --- Парсинг RSS ---------------------------------------------------------
-    parse_sources("site_sources:*", parse_site_task, "RSS")
+    rss_sources = get_source_names('site_sources:*')
+    tg_sources = get_source_names('tg_sources:*')
 
-    # --- Парсинг TG ---------------------------------------------------------
-    parse_sources("tg_sources:*", parse_channels_task, "TG")
+    if not rss_sources and not tg_sources:
+        print('Нет источников вообще')
+        return
 
-    # --- Фильтрация --------------------------------------------------
-    filter_result = filter_posts_task.apply_async()
-    print("Фильтрация запущена. Ждём результата...")
+    parsing_tasks = []
 
-    filtered_count = filter_result.get(timeout=180)
-    print(f"Отфильтровано: {filtered_count}")
-
-    # --- Запуск генерации постов -------------------------------------
-    redis = get_sync_redis()
-    filtered_keys = redis.keys("news:filtered:*")
-
-    if not filtered_keys:
-        print("Нет отфильтрованных новостей для генерации")
-    else:
-        print(f"Найдено отфильтрованных новостей: {len(filtered_keys)}")
-        print("Генерация запущена. Ждём результата...")
-
-        generate_group = group(
-            generate_post_task.s(
-                key.decode("utf-8") if isinstance(key, bytes) else key
-            )
-            for key in filtered_keys
+    if rss_sources:
+        print(f'Парсинг RSS: найдено {len(rss_sources)} источников')
+        parsing_tasks.extend(
+            parse_site_task.s(source_name=name)
+            for name in rss_sources
         )
 
-        try:
-            gen_counts = generate_group.apply_async().get(timeout=600)
-            total_generated = sum(x or 0 for x in gen_counts)
-            print(f"Генерация завершена. Успешно сгенерировано: {total_generated}")
-        except Exception as e:
-            print(f"Ошибка при генерации: {type(e).__name__}: {e}")
-
-    # --- Публикация сгенерированных постов в тг канале пользователя ----
-    generated_keys = redis.keys("news:generated:*")
-
-    if not generated_keys:
-        print("Нет сгенерированных новостей для публикации")
-    else:
-        print(f"Найдено сгенерированных новостей: {len(generated_keys)}")
-        print("Публикация запущена. Ждём результата...")
-
-        publish_group = group(
-            public_post_task.s(
-                key.decode("utf-8") if isinstance(key, bytes) else key
-            )
-            for key in generated_keys
+    if tg_sources:
+        print(f'Парсинг TG: найдено {len(tg_sources)} источников')
+        parsing_tasks.extend(
+            parse_channels_task.s(source_name=name)
+            for name in tg_sources
         )
 
-        try:
-            pub_counts = publish_group.apply_async().get(timeout=600)
-            total_published = sum(x or 0 for x in pub_counts)
-            print(f"Публикация завершена. Успешно опубликовано: {total_published}")
-        except Exception as e:
-            print(f"Ошибка при публикации: {type(e).__name__}: {e}")
+    parsing_group = group(parsing_tasks)
+
+    workflow = chain(
+        filter_posts_task.s(),
+        generate_wrapper.s(),
+        publish_wrapper.s(),
+    )
+
+    chord(parsing_group)(workflow)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
