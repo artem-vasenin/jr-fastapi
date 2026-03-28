@@ -35,6 +35,10 @@
 
 `celery -A celery_app worker --pool=solo -l info`
 
+И еще одним процессом запускаем Celery Beat
+
+`celery -A celery_app beat -l info`
+
 API документация проекта доступна по адресу:  
 [http://localhost/docs](http://localhost/docs)
 
@@ -76,6 +80,7 @@ project/
 │   │   ├── parse_channels.py       # Задача парсинга tg каналов
 │   │   ├── parse_sites.py          # Задача парсинга rss лент
 │   │   └── publication.py          # Задача публикации постов
+│   │   └── run_pipeline.py         # Задача pipeline для celery beat
 │   ├── utils/
 │   │   ├── initialization.py       # Утилита инициализации базы при запуске
 │   │   └── logging.py              # Утилита логирования
