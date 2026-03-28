@@ -29,7 +29,6 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "run-pipeline-every-minute": {
         "task": "app.tasks.run_pipeline.run_pipeline_task",
-        "schedule": crontab(minute="*/5"),
-        # "schedule": crontab(minute="*/30"),
+        "schedule": crontab(minute="*/30"),
     },
 }
