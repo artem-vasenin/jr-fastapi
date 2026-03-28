@@ -17,10 +17,10 @@ def post_to_channel(title: str, text: str, source: str, date: str):
         dt = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
         formatted_date = dt.strftime('%d/%m/%Y %H:%M:%S')
 
-        message = f"{title}\n\n{text}\n\n[{source}]: 🕒 {formatted_date}"
+        message = f"<b>{title}</b>\n\n{text}\n\n[{source}]: 🕒 {formatted_date}"
 
         # Отправляем сообщение в канал
-        client.send_message(entity, message)
+        client.send_message(entity, message, parse_mode='html')
         print(f"Пост отправлен в канал {CHANNEL_USERNAME}")
 
 
